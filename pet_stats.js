@@ -217,9 +217,11 @@
     },
 
     // Sleep a pet (called from sleep mode)
-    sleep(petIdx) {
+    // amount defaults to 15 for the initial tuck-in; sleep loop passes smaller ticks
+    sleep(petIdx, amount) {
       const i = (typeof petIdx === "number") ? petIdx : 0;
-      petStats[i].energy = clamp(petStats[i].energy + 15);
+      const gain = (typeof amount === "number") ? amount : 15;
+      petStats[i].energy = clamp(petStats[i].energy + gain);
       doSave();
     },
 

@@ -505,12 +505,32 @@
     }
   }
 
+  // === Continuous energy restore while sleeping ===
+  const ENERGY_RATE = 2;          // points per second while sleeping
+  let lastSleepTick = Date.now();
+
+  function sleepEnergyTick() {
+    const now = Date.now();
+    const dt = (now - lastSleepTick) / 1000;
+    lastSleepTick = now;
+
+    for (let i = 0; i < beds.length; i++) {
+      if (beds[i].state === "sleeping" && window.PetStats) {
+        const stats = window.PetStats.get(i);
+        if (stats.energy < 100) {
+          window.PetStats.sleep(i, dt * ENERGY_RATE);
+        }
+      }
+    }
+  }
+
   // === Main Loop ===
   let raf = 0;
   function loop() {
     baseCtx.clearRect(0, 0, baseCanvas.width, baseCanvas.height);
 
     update();
+    sleepEnergyTick();
 
     // Base layer
     drawBed();
