@@ -73,7 +73,7 @@
     clothesBtn.style.padding = "6px 12px";
     clothesBtn.style.fontSize = "clamp(11px, 2.5vw, 14px)";
     clothesBtn.style.cursor = "pointer";
-    clothesBtn.style.zIndex = "9999";
+    clothesBtn.style.zIndex = "9998";
     clothesBtn.style.borderRadius = "8px";
     clothesBtn.style.border = "none";
     clothesBtn.style.background = "rgba(255,255,255,0.92)";
