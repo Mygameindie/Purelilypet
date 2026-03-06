@@ -506,21 +506,21 @@
   }
 
   // === Continuous energy restore while sleeping ===
-  const ENERGY_RATE = 2;          // points per second while sleeping
-  let lastSleepTick = Date.now();
-
-  function sleepEnergyTick() {
-    const now = Date.now();
-    const dt = (now - lastSleepTick) / 1000;
-    lastSleepTick = now;
-
+  // Runs on a 1-second interval (not per-frame) to avoid spamming localStorage
+  const ENERGY_PER_TICK = 3;   // energy gained every tick
+  const sleepInterval = setInterval(() => {
     for (let i = 0; i < beds.length; i++) {
       if (beds[i].state === "sleeping" && window.PetStats) {
-        const stats = window.PetStats.get(i);
-        if (stats.energy < 100) {
-          window.PetStats.sleep(i, dt * ENERGY_RATE);
-        }
+        window.PetStats.sleep(i, ENERGY_PER_TICK);
       }
+    }
+  }, 1000);
+
+  // Tell pet_stats which pets are sleeping so decay pauses their energy
+  function updateSleepingFlags() {
+    window._petsSleeping = [];
+    for (let i = 0; i < beds.length; i++) {
+      window._petsSleeping[i] = (beds[i].state === "sleeping");
     }
   }
 
@@ -530,7 +530,7 @@
     baseCtx.clearRect(0, 0, baseCanvas.width, baseCanvas.height);
 
     update();
-    sleepEnergyTick();
+    updateSleepingFlags();
 
     // Base layer
     drawBed();
@@ -551,6 +551,8 @@
   // === Cleanup ===
   window._modeCleanup = function () {
     cancelAnimationFrame(raf);
+    clearInterval(sleepInterval);
+    window._petsSleeping = null;
     window.removeEventListener("resize", onResize);
   };
 
