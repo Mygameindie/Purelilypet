@@ -308,14 +308,17 @@
       pet.mood = "yellowgummybearfreeze";
       showBubble("Brrr! 🧊");
       playSound("frozen");
+      if (window.PetStats) window.PetStats.feedSpecial(hitIdx, "ice");
     } else if (f.type === "spicy") {
       pet.mood = "spicy";
       showBubble("Spicy! 🌶️");
       playSound("spicy");
+      if (window.PetStats) window.PetStats.feedSpecial(hitIdx, "spicy");
     } else {
       pet.mood = f.liked ? "happy" : "disgust";
       showBubble(f.liked ? "Yummy!" : "Yuck!");
       playSound(f.liked ? "yum" : "yuck");
+      if (window.PetStats) window.PetStats.feed(hitIdx, f.liked);
     }
 
     f.visible = false;

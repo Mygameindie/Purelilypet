@@ -223,6 +223,7 @@
         const pet = pets[idx];
         pet.recoilUntil = Date.now() + 120;
         pet.hurtUntil = Date.now() + 450;
+        if (window.PetStats) window.PetStats.troll(idx);
       }
     }, Math.floor(SWING_MS * IMPACT_AT));
 

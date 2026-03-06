@@ -1,10 +1,13 @@
-
+/* === GLOBAL SCALING SYSTEM === */
+:root {
+  --ui-scale: clamp(0.7, 100vw / 1280, 1.2);
 }
 
 /* Basic layout */
 * { box-sizing: border-box; }
 html, body {
   margin: 0;
+  padding: 0;
   height: 100%;
   overflow: hidden;
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
@@ -108,12 +111,7 @@ canvas {
   display: none;
 }
 
-/* === GLOBAL SCALING SYSTEM === */
-:root {
-  /* Dynamically adjust scale factor between 0.7 and 1.2 depending on screen width */
-  --ui-scale: clamp(0.7, 100vw / 1280, 1.2);
-  
-  /* === Feed scroll bar === */
+/* === Feed scroll bar === */
 #spawn-buttons {
   position: fixed;
   top: 50%;
@@ -149,15 +147,9 @@ canvas {
 .scroll-bar button:hover {
   background: #fff2d1;
 }
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  overflow: hidden;
-}
 
 /* ===========================================================
-   🔨 TROLL MODE: Hammer cursor + swing animation
+   TROLL MODE: Hammer cursor + swing animation
    =========================================================== */
 #hammer-cursor{
   position: fixed;
@@ -182,4 +174,3 @@ html, body {
 #hammer-cursor.swing{
   animation: hammerSwing 320ms ease-in-out 1;
 }
-
