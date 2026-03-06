@@ -364,6 +364,11 @@
     startProgress();
 
     // ✅ Auto-play immediately
+    // Karaoke boosts happiness for both pets
+    if (window.PetStats) {
+      window.PetStats.karaoke(0);
+      window.PetStats.karaoke(1);
+    }
     try {
       await mediaPlayer.play();
       startDance();

@@ -166,7 +166,12 @@
         playImpactSound(0.5);
       }
     }
-    if (activePet) activePet.dragging = false;
+    if (activePet) {
+      // Playing with pet boosts happiness
+      const petIdx = pets.indexOf(activePet);
+      if (petIdx >= 0 && window.PetStats) window.PetStats.play(petIdx);
+      activePet.dragging = false;
+    }
     activePet = null;
   }
 

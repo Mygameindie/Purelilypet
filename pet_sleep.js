@@ -283,6 +283,7 @@
       snapBlanketToBed(i);
 
       bed.state = "sleeping";
+      if (window.PetStats) window.PetStats.sleep(i);
 
       window._sleepClickBlocked = true;
       setTimeout(() => {

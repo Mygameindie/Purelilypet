@@ -250,7 +250,10 @@
 
       if (touching) {
         baths[i].currentBaseKey = "bath2";
-        if (!baths[i].wasTouching) playSplash();
+        if (!baths[i].wasTouching) {
+          playSplash();
+          if (window.PetStats) window.PetStats.shower(i);
+        }
         if (typeof window.setActivePet === "function") window.setActivePet(i);
       } else {
         baths[i].currentBaseKey = "bath1";
