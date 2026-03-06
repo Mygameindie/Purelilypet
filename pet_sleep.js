@@ -122,8 +122,8 @@
     {
       x: beds[0].x - 40,
       y: beds[0].y - 100,
-      w: 100,
-      h: 100,
+      w: 420,
+      h: 470,
       visible: false,
       dragging: false,
       locked: false,
@@ -131,8 +131,8 @@
     {
       x: beds[1].x - 40,
       y: beds[1].y - 100,
-      w: 100,
-      h: 100,
+      w: 420,
+      h: 470,
       visible: false,
       dragging: false,
       locked: false,
