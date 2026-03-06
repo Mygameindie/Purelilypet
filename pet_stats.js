@@ -69,10 +69,14 @@
 
     for (let i = 0; i < NUM_PETS; i++) {
       const s = petStats[i];
+      const isSleeping = Array.isArray(window._petsSleeping) && window._petsSleeping[i];
       s.hunger = clamp(s.hunger - DECAY.hunger * dt);
       s.happiness = clamp(s.happiness - DECAY.happiness * dt);
       s.cleanliness = clamp(s.cleanliness - DECAY.cleanliness * dt);
-      s.energy = clamp(s.energy - DECAY.energy * dt);
+      // Don't drain energy while pet is sleeping
+      if (!isSleeping) {
+        s.energy = clamp(s.energy - DECAY.energy * dt);
+      }
     }
 
     updateUI();
@@ -217,9 +221,11 @@
     },
 
     // Sleep a pet (called from sleep mode)
-    sleep(petIdx) {
+    // amount defaults to 15 for the initial tuck-in; sleep loop passes smaller ticks
+    sleep(petIdx, amount) {
       const i = (typeof petIdx === "number") ? petIdx : 0;
-      petStats[i].energy = clamp(petStats[i].energy + 15);
+      const gain = (typeof amount === "number") ? amount : 15;
+      petStats[i].energy = clamp(petStats[i].energy + gain);
       doSave();
     },
 
