@@ -301,22 +301,34 @@
   }
 
   // === Event Listeners ===
-  baseCanvas.addEventListener("mousedown", startDragPet);
-  baseCanvas.addEventListener("mousemove", moveDragPet);
-  baseCanvas.addEventListener("mouseup", endDragPet);
-  baseCanvas.addEventListener("touchstart", startDragPet, { passive: false });
-  baseCanvas.addEventListener("touchmove", moveDragPet, { passive: false });
-  baseCanvas.addEventListener("touchend", endDragPet);
+  const wakeClickBase = (e) => handleWakeClick(e, baseCanvas);
+  const wakeClickBlanket = (e) => handleWakeClick(e, blanketCanvas);
 
-  blanketCanvas.addEventListener("mousedown", startDragBlanket);
-  blanketCanvas.addEventListener("mousemove", moveDragBlanket);
-  blanketCanvas.addEventListener("mouseup", endDragBlanket);
-  blanketCanvas.addEventListener("touchstart", startDragBlanket, { passive: false });
-  blanketCanvas.addEventListener("touchmove", moveDragBlanket, { passive: false });
-  blanketCanvas.addEventListener("touchend", endDragBlanket);
+  const baseListeners = [
+    ["mousedown", startDragPet],
+    ["mousemove", moveDragPet],
+    ["mouseup", endDragPet],
+    ["touchstart", startDragPet],
+    ["touchmove", moveDragPet],
+    ["touchend", endDragPet],
+    ["click", wakeClickBase],
+  ];
+  const blanketListeners = [
+    ["mousedown", startDragBlanket],
+    ["mousemove", moveDragBlanket],
+    ["mouseup", endDragBlanket],
+    ["touchstart", startDragBlanket],
+    ["touchmove", moveDragBlanket],
+    ["touchend", endDragBlanket],
+    ["click", wakeClickBlanket],
+  ];
 
-  baseCanvas.addEventListener("click", (e) => handleWakeClick(e, baseCanvas));
-  blanketCanvas.addEventListener("click", (e) => handleWakeClick(e, blanketCanvas));
+  baseListeners.forEach(([ev, fn]) =>
+    baseCanvas.addEventListener(ev, fn, { passive: false })
+  );
+  blanketListeners.forEach(([ev, fn]) =>
+    blanketCanvas.addEventListener(ev, fn, { passive: false })
+  );
 
   // === Resize ===
   function onResize() {
@@ -478,6 +490,8 @@
     clearInterval(sleepInterval);
     window._petsSleeping = null;
     window.removeEventListener("resize", onResize);
+    baseListeners.forEach(([ev, fn]) => baseCanvas.removeEventListener(ev, fn));
+    blanketListeners.forEach(([ev, fn]) => blanketCanvas.removeEventListener(ev, fn));
     if (blanketCanvas && blanketCanvas.parentNode) {
       blanketCanvas.parentNode.removeChild(blanketCanvas);
     }

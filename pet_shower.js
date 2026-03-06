@@ -289,8 +289,12 @@
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const newCanvas = canvas.cloneNode(true);
-    canvas.parentNode.replaceChild(newCanvas, canvas);
+    canvas.removeEventListener("mousedown", startDrag);
+    canvas.removeEventListener("mousemove", moveDrag);
+    canvas.removeEventListener("mouseup", stopDrag);
+    canvas.removeEventListener("touchstart", startDrag);
+    canvas.removeEventListener("touchmove", moveDrag);
+    canvas.removeEventListener("touchend", stopDrag);
   };
 
 })();
