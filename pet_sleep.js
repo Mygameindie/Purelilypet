@@ -19,6 +19,7 @@
     blanketCanvas.style.height = "100vh";
     blanketCanvas.style.zIndex = "99";
     blanketCanvas.style.pointerEvents = "none";
+    blanketCanvas.style.background = "transparent";
     document.body.appendChild(blanketCanvas);
   }
   const blanketCtx = blanketCanvas.getContext("2d");
