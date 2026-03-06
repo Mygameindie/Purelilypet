@@ -1,9 +1,7 @@
 // ===========================================================
-// 😴 pet_sleep.js — Sleep Mode (2-canvas fix)
-// ✅ FIX: blanket ALWAYS on top using separate canvas (#blanketCanvas z-index 99999)
+// 😴 pet_sleep.js — Sleep Mode (shared bed, blanket covers body not head)
 // ===========================================================
 (function () {
-  // --- Base canvas (bed/pet/clothes) ---
   const baseCanvas = document.getElementById("canvas");
   const baseCtx = baseCanvas.getContext("2d");
 
@@ -24,14 +22,17 @@
   }
   const blanketCtx = blanketCanvas.getContext("2d");
 
-  // ✅ CONFIG
-  const BED_OFFSET = 450; // bigger number = higher bed
+  // CONFIG
+  const BED_OFFSET = 450;
   const GROUND_OFFSET = 100;
+  const BED_W = 700;
+  const BED_H = 450;
+  const PET_W = 400;
+  const PET_H = 450;
 
   function resizeCanvas() {
     baseCanvas.width = window.innerWidth;
     baseCanvas.height = window.innerHeight;
-
     blanketCanvas.width = window.innerWidth;
     blanketCanvas.height = window.innerHeight;
   }
@@ -46,8 +47,6 @@
     return img;
   }
 
-  // Optional 2 art naming:
-  //   base_2.png, base2_2.png, base3_2.png, base4_2.png
   function loadBaseSet(suffix) {
     return {
       stand: createImg(`base${suffix}.png`),
@@ -57,32 +56,20 @@
     };
   }
 
-  const baseSets = [
-    loadBaseSet(''),
-    loadBaseSet('_2'),
-  ];
+  const baseSets = [loadBaseSet(''), loadBaseSet('_2')];
 
-    const imgs = {
-  bed: createImg("bed.png"),
-  bedSleep1: [
-    createImg("bed_sleep1.png"),     // pet1
-    createImg("bed_sleep1_2.png"),   // pet2
-  ],
-  bedSleep2: [
-    createImg("bed_sleep2.png"),     // pet1
-    createImg("bed_sleep2_2.png"),   // pet2
-  ],
-  blanket1: createImg("blanket1.png"),
-};
-
+  const imgs = {
+    bed: createImg("bed.png"),
+    blanket1: createImg("blanket1.png"),
+  };
 
   // === Pets (2) ===
   function makePet(x, idx) {
     const p = {
       x,
       y: baseCanvas.height - 170 - 170,
-      w: 400,
-      h: 450,
+      w: PET_W,
+      h: PET_H,
       dragging: false,
       oldx: 0,
       oldy: 0,
@@ -95,51 +82,36 @@
   }
 
   const pets = [
-    makePet(baseCanvas.width * 0.35, 0),
-    makePet(baseCanvas.width * 0.65, 1),
+    makePet(baseCanvas.width * 0.3, 0),
+    makePet(baseCanvas.width * 0.7, 1),
   ];
 
-  // === Beds (2) ===
-  const beds = [
-    {
-      x: baseCanvas.width * 0.35,
-      y: baseCanvas.height - BED_OFFSET,
-      w: 400,
-      h: 450,
-      state: "normal", // "normal" | "preSleep" | "sleeping"
-      petIndex: -1,    // which pet is in this bed (-1 = none)
-    },
-    {
-      x: baseCanvas.width * 0.65,
-      y: baseCanvas.height - BED_OFFSET,
-      w: 400,
-      h: 450,
-      state: "normal",
-      petIndex: -1,
-    },
-  ];
+  // === One shared bed (centered) ===
+  const bed = {
+    x: baseCanvas.width * 0.5,
+    y: baseCanvas.height - BED_OFFSET,
+    w: BED_W,
+    h: BED_H,
+    petsInBed: [false, false],   // which pets are in the bed
+    sleeping: false,             // blanket is locked = actually sleeping
+  };
 
-  // === Blankets (2) ===
-  const blankets = [
-    {
-      x: beds[0].x - 40,
-      y: beds[0].y - 100,
-      w: 420,
-      h: 470,
-      visible: false,
-      dragging: false,
-      locked: false,
-    },
-    {
-      x: beds[1].x - 40,
-      y: beds[1].y - 100,
-      w: 420,
-      h: 470,
-      visible: false,
-      dragging: false,
-      locked: false,
-    },
-  ];
+  // === One blanket ===
+  const blanket = {
+    x: bed.x + bed.w / 2 + 80,
+    y: bed.y,
+    w: BED_W + 40,
+    h: BED_H * 0.65,
+    visible: false,
+    dragging: false,
+    locked: false,
+  };
+
+  function snapBlanketToBed() {
+    blanket.x = bed.x;
+    // Position blanket to cover lower body area (not heads)
+    blanket.y = bed.y + bed.h * 0.1;
+  }
 
   // === Physics ===
   const vy = [0, 0];
@@ -157,27 +129,29 @@
     return { x, y };
   }
 
-  function snapBlanketToBed(i) {
-    const bed = beds[i];
-    const blanket = blankets[i];
-    blanket.x = bed.x;
-    blanket.y = bed.y - bed.h / 2 + 80;
+  function anyPetInBed() {
+    return bed.petsInBed[0] || bed.petsInBed[1];
   }
 
   function setBlanketPointerEvents() {
-    // ✅ Only let top canvas intercept input when ANY blanket is interactable
-    const anyInteractable = blankets.some(b => b.visible && !b.locked);
-    blanketCanvas.style.pointerEvents = anyInteractable ? "auto" : "none";
+    const interactable = blanket.visible && !blanket.locked;
+    blanketCanvas.style.pointerEvents = interactable ? "auto" : "none";
+  }
+
+  // Where each pet sits inside the bed (left / right)
+  function petBedX(petIdx) {
+    return petIdx === 0 ? bed.x - bed.w * 0.18 : bed.x + bed.w * 0.18;
+  }
+  function petBedY() {
+    return bed.y;
   }
 
   // Active drag targets
   let activePetIndex = -1;
-  let activeBlanketIndex = -1;
 
-  // === Drag Start (PET) — on base canvas ===
+  // === Drag Start (PET) ===
   function startDragPet(e) {
     const p = getPos(baseCanvas, e);
-
     for (let i = pets.length - 1; i >= 0; i--) {
       const pet = pets[i];
       if (
@@ -198,7 +172,6 @@
     }
   }
 
-  // === Drag Move (PET) — on base canvas ===
   function moveDragPet(e) {
     if (activePetIndex < 0) return;
     const pet = pets[activePetIndex];
@@ -208,7 +181,6 @@
     pet.y = p.y;
   }
 
-  // === Drag End (PET) — on base canvas ===
   function endDragPet() {
     if (activePetIndex < 0) return;
     const i = activePetIndex;
@@ -219,156 +191,116 @@
     pet.oldx = pet.x;
     pet.oldy = pet.y;
 
-    // Check ALL beds for overlap (any pet can go to any bed)
-    for (let b = 0; b < beds.length; b++) {
-      const bed = beds[b];
-      if (bed.state !== "normal") continue; // bed already occupied
-      const blanket = blankets[b];
+    // Check overlap with the shared bed
+    const petBottom = pet.y + pet.h / 2;
+    const bedTop = bed.y - bed.h / 2;
+    const overlapX = Math.abs(pet.x - bed.x) < (pet.w / 2 + bed.w / 2) * 0.6;
+    const overlapY = petBottom > bedTop && petBottom < bed.y + bed.h / 2;
 
-      const petBottom = pet.y + pet.h / 2;
-      const bedTop = bed.y - bed.h / 2;
+    if (overlapX && overlapY && !bed.petsInBed[i]) {
+      bed.petsInBed[i] = true;
+      pet.visible = false;
+      vy[i] = 0;
+      vx[i] = 0;
 
-      const overlapX = Math.abs(pet.x - bed.x) < (pet.w / 2 + bed.w / 2) * 0.6;
-      const overlapY = petBottom > bedTop && petBottom < bed.y + bed.h / 2;
-
-      if (overlapX && overlapY) {
-        bed.state = "preSleep";
-        bed.petIndex = i; // track which pet is in this bed
+      // Show blanket if not already sleeping
+      if (!bed.sleeping) {
         blanket.visible = true;
         blanket.locked = false;
-        snapBlanketToBed(b);
         setBlanketPointerEvents();
-
-        pet.visible = false;
-        vy[i] = 0;
-        vx[i] = 0;
-        break;
       }
     }
 
     activePetIndex = -1;
   }
 
-  // === Drag Start (BLANKET) — on top canvas ===
+  // === Drag Blanket (top canvas) ===
+  let blanketDragging = false;
+
   function startDragBlanket(e) {
+    if (!blanket.visible || blanket.locked) return;
     const p = getPos(blanketCanvas, e);
-    for (let i = blankets.length - 1; i >= 0; i--) {
-      const blanket = blankets[i];
-      if (!blanket.visible || blanket.locked) continue;
-      if (
-        p.x > blanket.x - blanket.w / 2 &&
-        p.x < blanket.x + blanket.w / 2 &&
-        p.y > blanket.y - blanket.h / 2 &&
-        p.y < blanket.y + blanket.h / 2
-      ) {
-        blanket.dragging = true;
-        activeBlanketIndex = i;
-        if (typeof window.setActivePet === "function") window.setActivePet(i);
-        e.preventDefault();
-        return;
-      }
+    if (
+      p.x > blanket.x - blanket.w / 2 &&
+      p.x < blanket.x + blanket.w / 2 &&
+      p.y > blanket.y - blanket.h / 2 &&
+      p.y < blanket.y + blanket.h / 2
+    ) {
+      blanketDragging = true;
+      e.preventDefault();
     }
   }
 
-  // === Drag Move (BLANKET) — on top canvas ===
   function moveDragBlanket(e) {
-    if (activeBlanketIndex < 0) return;
-    const blanket = blankets[activeBlanketIndex];
-    if (!blanket.dragging) return;
+    if (!blanketDragging) return;
     const p = getPos(blanketCanvas, e);
     blanket.x = p.x;
     blanket.y = p.y;
   }
 
-  // === Drag End (BLANKET) — on top canvas ===
   function endDragBlanket() {
-    if (activeBlanketIndex < 0) return;
-    const i = activeBlanketIndex;
-    const blanket = blankets[i];
-    if (!blanket.dragging) return;
+    if (!blanketDragging) return;
+    blanketDragging = false;
 
-    blanket.dragging = false;
+    const overlapX = Math.abs(blanket.x - bed.x) < (blanket.w / 2 + bed.w / 2) * 0.5;
+    const overlapY = Math.abs(blanket.y - bed.y) < (blanket.h / 2 + bed.h / 2) * 0.5;
 
-    const bed = beds[i];
-    const overlapX = Math.abs(blanket.x - bed.x) < (blanket.w / 2 + bed.w / 2) * 0.6;
-    const overlapY = Math.abs(blanket.y - bed.y) < (blanket.h / 2 + bed.h / 2) * 0.6;
-
-    if (overlapX && overlapY && bed.state === "preSleep") {
-      blanket.visible = true;
+    if (overlapX && overlapY && anyPetInBed()) {
       blanket.locked = true;
-      snapBlanketToBed(i);
+      snapBlanketToBed();
+      bed.sleeping = true;
 
-      bed.state = "sleeping";
-      if (window.PetStats && bed.petIndex >= 0) window.PetStats.sleep(bed.petIndex);
+      // Start sleeping for all pets in bed
+      for (let i = 0; i < 2; i++) {
+        if (bed.petsInBed[i] && window.PetStats) {
+          window.PetStats.sleep(i);
+        }
+      }
 
       window._sleepClickBlocked = true;
-      setTimeout(() => {
-        window._sleepClickBlocked = false;
-      }, 100);
+      setTimeout(() => { window._sleepClickBlocked = false; }, 100);
     }
 
     setBlanketPointerEvents();
-    activeBlanketIndex = -1;
   }
 
+  // === Wake click ===
   function handleWakeClick(e, sourceCanvas) {
-  if (window._sleepClickBlocked) return;
+    if (window._sleepClickBlocked) return;
+    if (!anyPetInBed()) return;
 
-  const p = getPos(sourceCanvas, e);
-
-  for (let i = 0; i < beds.length; i++) {
-    const bed = beds[i];
-
+    const p = getPos(sourceCanvas, e);
     const bedLeft = bed.x - bed.w / 2;
     const bedRight = bed.x + bed.w / 2;
     const bedTop = bed.y - bed.h / 2;
     const bedBottom = bed.y + bed.h / 2;
 
-    if (
-      (bed.state === "preSleep" || bed.state === "sleeping") &&
-      p.x > bedLeft &&
-      p.x < bedRight &&
-      p.y > bedTop &&
-      p.y < bedBottom
-    ) {
-      // ✅ Reset bed
-      const pi = bed.petIndex; // which pet was in this bed
-      bed.state = "normal";
-      bed.petIndex = -1;
+    if (p.x > bedLeft && p.x < bedRight && p.y > bedTop && p.y < bedBottom) {
+      // Wake up all pets in the bed
+      for (let i = 0; i < 2; i++) {
+        if (!bed.petsInBed[i]) continue;
 
-      const pet = pets[pi >= 0 ? pi : i];
-      const blanket = blankets[i];
+        const pet = pets[i];
+        pet.visible = true;
+        // Pop out above the bed
+        pet.x = petBedX(i);
+        pet.y = bed.y - bed.h / 2 - pet.h / 2;
+        vx[i] = 0;
+        vy[i] = 0;
+        pet.oldx = pet.x;
+        pet.oldy = pet.y;
+      }
 
-      // ✅ Show pet again
-      pet.visible = true;
-      pet.x = bed.x;
-      pet.y = bed.y - bed.h / 2 - pet.h / 2;
-
-      // ✅ Hide blanket completely
+      bed.petsInBed = [false, false];
+      bed.sleeping = false;
       blanket.visible = false;
       blanket.locked = false;
       blanket.dragging = false;
-      snapBlanketToBed(i);
-
-      // Reset physics
-      const pidx = pi >= 0 ? pi : i;
-      vx[pidx] = 0;
-      vy[pidx] = 0;
-      pet.oldx = pet.x;
-      pet.oldy = pet.y;
-
-      if (typeof window.setActivePet === "function") {
-        window.setActivePet(pidx);
-      }
-
       setBlanketPointerEvents();
-      break;
     }
   }
-}
 
   // === Event Listeners ===
-  // Pet events
   baseCanvas.addEventListener("mousedown", startDragPet);
   baseCanvas.addEventListener("mousemove", moveDragPet);
   baseCanvas.addEventListener("mouseup", endDragPet);
@@ -376,7 +308,6 @@
   baseCanvas.addEventListener("touchmove", moveDragPet, { passive: false });
   baseCanvas.addEventListener("touchend", endDragPet);
 
-  // Blanket events (top canvas)
   blanketCanvas.addEventListener("mousedown", startDragBlanket);
   blanketCanvas.addEventListener("mousemove", moveDragBlanket);
   blanketCanvas.addEventListener("mouseup", endDragBlanket);
@@ -384,30 +315,24 @@
   blanketCanvas.addEventListener("touchmove", moveDragBlanket, { passive: false });
   blanketCanvas.addEventListener("touchend", endDragBlanket);
 
-  // Wake click (both canvases)
   baseCanvas.addEventListener("click", (e) => handleWakeClick(e, baseCanvas));
   blanketCanvas.addEventListener("click", (e) => handleWakeClick(e, blanketCanvas));
 
   // === Resize ===
   function onResize() {
     resizeCanvas();
-    beds[0].x = baseCanvas.width * 0.35;
-    beds[1].x = baseCanvas.width * 0.65;
-    beds.forEach(b => (b.y = baseCanvas.height - BED_OFFSET));
+    bed.x = baseCanvas.width * 0.5;
+    bed.y = baseCanvas.height - BED_OFFSET;
     groundY = baseCanvas.height - GROUND_OFFSET;
-
-    blankets.forEach((bl, i) => {
-      if (bl.visible) snapBlanketToBed(i);
-    });
+    if (blanket.locked) snapBlanketToBed();
   }
   window.addEventListener("resize", onResize);
 
-  // === Physics Update ===
+  // === Physics ===
   function update() {
     for (let i = 0; i < pets.length; i++) {
       const pet = pets[i];
-      const bed = beds[i];
-      if (!pet.visible || bed.state !== "normal") continue;
+      if (!pet.visible || bed.petsInBed[i]) continue;
       if (pet.dragging) continue;
 
       const nx = pet.x;
@@ -429,119 +354,101 @@
     }
   }
 
-  // === Draw Helpers ===
+  // === Draw ===
   function safeDraw(ctx, img, x, y, w, h) {
     if (!img || img._failed || !img.complete || img.naturalWidth === 0) return;
-    try {
-      ctx.drawImage(img, x, y, w, h);
-    } catch (_) {}
+    try { ctx.drawImage(img, x, y, w, h); } catch (_) {}
   }
 
   function drawBed() {
-  beds.forEach((bed) => {
-    let img = imgs.bed;
-    const pi = bed.petIndex; // which pet is in this bed
+    safeDraw(baseCtx, imgs.bed, bed.x - bed.w / 2, bed.y - bed.h / 2, bed.w, bed.h);
+  }
 
-    if (bed.state === "preSleep" && pi >= 0) {
-      img = imgs.bedSleep1[pi] || imgs.bedSleep1[0];
-    } else if (bed.state === "sleeping" && pi >= 0) {
-      img = imgs.bedSleep2[pi] || imgs.bedSleep2[0];
+  function drawPetsInBed() {
+    // Draw sleeping pets at their left/right positions inside the bed
+    for (let i = 0; i < 2; i++) {
+      if (!bed.petsInBed[i]) continue;
+
+      const px = petBedX(i);
+      const py = petBedY();
+      const pet = pets[i];
+
+      let set = baseSets[i] || baseSets[0];
+      let img = set.stand;
+      let useTint = false;
+      if (!img || img._failed) {
+        set = baseSets[0];
+        img = set.stand;
+        useTint = (i === 1);
+      }
+
+      baseCtx.save();
+      baseCtx.filter = useTint ? (pet.drawFilter || "none") : "none";
+      safeDraw(baseCtx, img, px - pet.w / 2, py - pet.h / 2, pet.w, pet.h);
+
+      // Outfit overlay
+      if (window.drawOutfitOverlay) {
+        const drawn = window.drawOutfitOverlay(baseCtx, "sleep", px - pet.w / 2, py - pet.h / 2, pet.w, pet.h, i);
+        if (!drawn) window.drawOutfitOverlay(baseCtx, "stand", px - pet.w / 2, py - pet.h / 2, pet.w, pet.h, i);
+      }
+      baseCtx.restore();
     }
+  }
 
-    safeDraw(baseCtx, img, bed.x - bed.w / 2, bed.y - bed.h / 2, bed.w, bed.h);
-  });
-}
-
-  function drawPet() {
+  function drawFreePets() {
     pets.forEach((pet, i) => {
       if (!pet.visible) return;
 
       const state = pet.dragging ? "fly0" : vy[i] > 2 ? "fall" : "stand";
       let set = baseSets[i] || baseSets[0];
       let img = set[state];
-      let useTintFallback = false;
+      let useTint = false;
       if (!img || img._failed) {
         set = baseSets[0];
         img = set[state];
-        useTintFallback = (i === 1);
+        useTint = (i === 1);
       }
 
       baseCtx.save();
-      baseCtx.filter = useTintFallback ? (pet.drawFilter || "none") : "none";
+      baseCtx.filter = useTint ? (pet.drawFilter || "none") : "none";
       safeDraw(baseCtx, img, pet.x - pet.w / 2, pet.y - pet.h / 2, pet.w, pet.h);
 
-      // Outfit overlay (per pet)
       if (window.drawOutfitOverlay) {
         window.drawOutfitOverlay(baseCtx, state, pet.x - pet.w / 2, pet.y - pet.h / 2, pet.w, pet.h, i);
       }
-
       baseCtx.restore();
     });
   }
 
-  function drawSleepOutfit() {
-    if (!window.drawOutfitOverlay) return;
-
-    const SLEEP_OFF_X = 0;
-    const SLEEP_OFF_Y = 0;
-
-    for (let i = 0; i < beds.length; i++) {
-      const bed = beds[i];
-      if (bed.state === "normal" || bed.petIndex < 0) continue;
-
-      const pi = bed.petIndex;
-      const pet = pets[pi];
-      const ox = bed.x + SLEEP_OFF_X - pet.w / 2;
-      const oy = bed.y + SLEEP_OFF_Y - pet.h / 2;
-
-      // If 2 art is missing (fallback tint), tint sleep outfit too so everything matches.
-      let set = baseSets[pi] || baseSets[0];
-      let base = set.stand;
-      let needsTint = false;
-      if (!base || base._failed) {
-        needsTint = (pi === 1);
-      }
-
-      baseCtx.save();
-      baseCtx.filter = needsTint ? (pet.drawFilter || "none") : "none";
-      const drawn = window.drawOutfitOverlay(baseCtx, "sleep", ox, oy, pet.w, pet.h, pi);
-      if (!drawn) window.drawOutfitOverlay(baseCtx, "stand", ox, oy, pet.w, pet.h, pi);
-      baseCtx.restore();
-    }
-  }
-
   function drawBlanketTopCanvas() {
     blanketCtx.clearRect(0, 0, blanketCanvas.width, blanketCanvas.height);
-    for (let i = 0; i < blankets.length; i++) {
-      const blanket = blankets[i];
-      if (!blanket.visible) continue;
-      safeDraw(
-        blanketCtx,
-        imgs.blanket1,
-        blanket.x - blanket.w / 2,
-        blanket.y - blanket.h / 2,
-        blanket.w,
-        blanket.h
-      );
-    }
+    if (!blanket.visible) return;
+    safeDraw(
+      blanketCtx,
+      imgs.blanket1,
+      blanket.x - blanket.w / 2,
+      blanket.y - blanket.h / 2,
+      blanket.w,
+      blanket.h
+    );
   }
 
-  // === Continuous energy restore while sleeping ===
+  // === Energy restore ===
   const ENERGY_PER_TICK = 3;
   const sleepInterval = setInterval(() => {
-    for (let i = 0; i < beds.length; i++) {
-      if (beds[i].state === "sleeping" && beds[i].petIndex >= 0 && window.PetStats) {
-        window.PetStats.sleep(beds[i].petIndex, ENERGY_PER_TICK);
+    if (!bed.sleeping) return;
+    for (let i = 0; i < 2; i++) {
+      if (bed.petsInBed[i] && window.PetStats) {
+        window.PetStats.sleep(i, ENERGY_PER_TICK);
       }
     }
   }, 1000);
 
-  // Tell pet_stats which pets are sleeping so decay pauses their energy
   function updateSleepingFlags() {
     window._petsSleeping = [false, false];
-    for (let i = 0; i < beds.length; i++) {
-      if (beds[i].state === "sleeping" && beds[i].petIndex >= 0) {
-        window._petsSleeping[beds[i].petIndex] = true;
+    for (let i = 0; i < 2; i++) {
+      if (bed.sleeping && bed.petsInBed[i]) {
+        window._petsSleeping[i] = true;
       }
     }
   }
@@ -554,20 +461,15 @@
     update();
     updateSleepingFlags();
 
-    // Base layer
     drawBed();
-    drawPet();
-    drawSleepOutfit();
-
-    // Top layer (ALWAYS above everything)
+    drawPetsInBed();
+    drawFreePets();
     drawBlanketTopCanvas();
 
     raf = requestAnimationFrame(loop);
   }
 
-  // init pointer-events state
   setBlanketPointerEvents();
-
   loop();
 
   // === Cleanup ===
@@ -576,7 +478,6 @@
     clearInterval(sleepInterval);
     window._petsSleeping = null;
     window.removeEventListener("resize", onResize);
-    // Remove blanket canvas so it doesn't block other modes
     if (blanketCanvas && blanketCanvas.parentNode) {
       blanketCanvas.parentNode.removeChild(blanketCanvas);
     }
