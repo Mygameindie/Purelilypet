@@ -7,13 +7,21 @@
   const baseCanvas = document.getElementById("canvas");
   const baseCtx = baseCanvas.getContext("2d");
 
-  // --- Top canvas (blanket only) ---
+  // --- Top canvas (blanket only) — must overlay game canvas ---
   let blanketCanvas = document.getElementById("blanketCanvas");
   if (!blanketCanvas) {
     blanketCanvas = document.createElement("canvas");
     blanketCanvas.id = "blanketCanvas";
     document.body.appendChild(blanketCanvas);
   }
+  // Position it exactly over the game canvas
+  blanketCanvas.style.position = "fixed";
+  blanketCanvas.style.top = "0";
+  blanketCanvas.style.left = "0";
+  blanketCanvas.style.width = "100vw";
+  blanketCanvas.style.height = "100vh";
+  blanketCanvas.style.zIndex = "99";
+  blanketCanvas.style.pointerEvents = "none"; // setBlanketPointerEvents toggles this
   const blanketCtx = blanketCanvas.getContext("2d");
 
   // ✅ CONFIG
@@ -109,22 +117,22 @@
     },
   ];
 
-  // === Blankets (2) ===
+  // === Blankets (2) — sized to cover the bed ===
   const blankets = [
     {
-      x: beds[0].x - 40,
-      y: beds[0].y - 100,
-      w: 100,
-      h: 100,
+      x: beds[0].x,
+      y: beds[0].y - 120,
+      w: 400,
+      h: 350,
       visible: false,
       dragging: false,
       locked: false,
     },
     {
-      x: beds[1].x - 40,
-      y: beds[1].y - 100,
-      w: 100,
-      h: 100,
+      x: beds[1].x,
+      y: beds[1].y - 120,
+      w: 400,
+      h: 350,
       visible: false,
       dragging: false,
       locked: false,
@@ -151,7 +159,7 @@
     const bed = beds[i];
     const blanket = blankets[i];
     blanket.x = bed.x;
-    blanket.y = bed.y - bed.h / 2 + 80;
+    blanket.y = bed.y - 40;  // center blanket over the bed area
   }
 
   function setBlanketPointerEvents() {
@@ -554,6 +562,10 @@
     clearInterval(sleepInterval);
     window._petsSleeping = null;
     window.removeEventListener("resize", onResize);
+    // Remove blanket canvas so it doesn't block other modes
+    if (blanketCanvas && blanketCanvas.parentNode) {
+      blanketCanvas.parentNode.removeChild(blanketCanvas);
+    }
   };
 
   window._modeName = "sleep";
