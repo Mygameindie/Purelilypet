@@ -107,6 +107,7 @@
       w: 400,
       h: 450,
       state: "normal", // "normal" | "preSleep" | "sleeping"
+      petIndex: -1,    // which pet is in this bed (-1 = none)
     },
     {
       x: baseCanvas.width * 0.65,
@@ -114,6 +115,7 @@
       w: 400,
       h: 450,
       state: "normal",
+      petIndex: -1,
     },
   ];
 
@@ -217,25 +219,31 @@
     pet.oldx = pet.x;
     pet.oldy = pet.y;
 
-    const bed = beds[i];
-    const blanket = blankets[i];
+    // Check ALL beds for overlap (any pet can go to any bed)
+    for (let b = 0; b < beds.length; b++) {
+      const bed = beds[b];
+      if (bed.state !== "normal") continue; // bed already occupied
+      const blanket = blankets[b];
 
-    const petBottom = pet.y + pet.h / 2;
-    const bedTop = bed.y - bed.h / 2;
+      const petBottom = pet.y + pet.h / 2;
+      const bedTop = bed.y - bed.h / 2;
 
-    const overlapX = Math.abs(pet.x - bed.x) < (pet.w / 2 + bed.w / 2) * 0.6;
-    const overlapY = petBottom > bedTop && petBottom < bed.y + bed.h / 2;
+      const overlapX = Math.abs(pet.x - bed.x) < (pet.w / 2 + bed.w / 2) * 0.6;
+      const overlapY = petBottom > bedTop && petBottom < bed.y + bed.h / 2;
 
-    if (overlapX && overlapY) {
-      bed.state = "preSleep";
-      blanket.visible = true;
-      blanket.locked = false;
-      snapBlanketToBed(i);
-      setBlanketPointerEvents();
+      if (overlapX && overlapY) {
+        bed.state = "preSleep";
+        bed.petIndex = i; // track which pet is in this bed
+        blanket.visible = true;
+        blanket.locked = false;
+        snapBlanketToBed(b);
+        setBlanketPointerEvents();
 
-      pet.visible = false;
-      vy[i] = 0;
-      vx[i] = 0;
+        pet.visible = false;
+        vy[i] = 0;
+        vx[i] = 0;
+        break;
+      }
     }
 
     activePetIndex = -1;
@@ -291,7 +299,7 @@
       snapBlanketToBed(i);
 
       bed.state = "sleeping";
-      if (window.PetStats) window.PetStats.sleep(i);
+      if (window.PetStats && bed.petIndex >= 0) window.PetStats.sleep(bed.petIndex);
 
       window._sleepClickBlocked = true;
       setTimeout(() => {
@@ -324,9 +332,11 @@
       p.y < bedBottom
     ) {
       // ✅ Reset bed
+      const pi = bed.petIndex; // which pet was in this bed
       bed.state = "normal";
+      bed.petIndex = -1;
 
-      const pet = pets[i];
+      const pet = pets[pi >= 0 ? pi : i];
       const blanket = blankets[i];
 
       // ✅ Show pet again
@@ -341,13 +351,14 @@
       snapBlanketToBed(i);
 
       // Reset physics
-      vx[i] = 0;
-      vy[i] = 0;
+      const pidx = pi >= 0 ? pi : i;
+      vx[pidx] = 0;
+      vy[pidx] = 0;
       pet.oldx = pet.x;
       pet.oldy = pet.y;
 
       if (typeof window.setActivePet === "function") {
-        window.setActivePet(i);
+        window.setActivePet(pidx);
       }
 
       setBlanketPointerEvents();
@@ -427,13 +438,14 @@
   }
 
   function drawBed() {
-  beds.forEach((bed, i) => {
+  beds.forEach((bed) => {
     let img = imgs.bed;
+    const pi = bed.petIndex; // which pet is in this bed
 
-    if (bed.state === "preSleep") {
-      img = imgs.bedSleep1[i] || imgs.bedSleep1[0];
-    } else if (bed.state === "sleeping") {
-      img = imgs.bedSleep2[i] || imgs.bedSleep2[0];
+    if (bed.state === "preSleep" && pi >= 0) {
+      img = imgs.bedSleep1[pi] || imgs.bedSleep1[0];
+    } else if (bed.state === "sleeping" && pi >= 0) {
+      img = imgs.bedSleep2[pi] || imgs.bedSleep2[0];
     }
 
     safeDraw(baseCtx, img, bed.x - bed.w / 2, bed.y - bed.h / 2, bed.w, bed.h);
@@ -475,24 +487,25 @@
 
     for (let i = 0; i < beds.length; i++) {
       const bed = beds[i];
-      if (bed.state === "normal") continue;
+      if (bed.state === "normal" || bed.petIndex < 0) continue;
 
-      const pet = pets[i];
+      const pi = bed.petIndex;
+      const pet = pets[pi];
       const ox = bed.x + SLEEP_OFF_X - pet.w / 2;
       const oy = bed.y + SLEEP_OFF_Y - pet.h / 2;
 
       // If 2 art is missing (fallback tint), tint sleep outfit too so everything matches.
-      let set = baseSets[i] || baseSets[0];
+      let set = baseSets[pi] || baseSets[0];
       let base = set.stand;
       let needsTint = false;
       if (!base || base._failed) {
-        needsTint = (i === 1);
+        needsTint = (pi === 1);
       }
 
       baseCtx.save();
       baseCtx.filter = needsTint ? (pet.drawFilter || "none") : "none";
-      const drawn = window.drawOutfitOverlay(baseCtx, "sleep", ox, oy, pet.w, pet.h, i);
-      if (!drawn) window.drawOutfitOverlay(baseCtx, "stand", ox, oy, pet.w, pet.h, i);
+      const drawn = window.drawOutfitOverlay(baseCtx, "sleep", ox, oy, pet.w, pet.h, pi);
+      if (!drawn) window.drawOutfitOverlay(baseCtx, "stand", ox, oy, pet.w, pet.h, pi);
       baseCtx.restore();
     }
   }
@@ -517,17 +530,19 @@
   const ENERGY_PER_TICK = 3;
   const sleepInterval = setInterval(() => {
     for (let i = 0; i < beds.length; i++) {
-      if (beds[i].state === "sleeping" && window.PetStats) {
-        window.PetStats.sleep(i, ENERGY_PER_TICK);
+      if (beds[i].state === "sleeping" && beds[i].petIndex >= 0 && window.PetStats) {
+        window.PetStats.sleep(beds[i].petIndex, ENERGY_PER_TICK);
       }
     }
   }, 1000);
 
   // Tell pet_stats which pets are sleeping so decay pauses their energy
   function updateSleepingFlags() {
-    window._petsSleeping = [];
+    window._petsSleeping = [false, false];
     for (let i = 0; i < beds.length; i++) {
-      window._petsSleeping[i] = (beds[i].state === "sleeping");
+      if (beds[i].state === "sleeping" && beds[i].petIndex >= 0) {
+        window._petsSleeping[beds[i].petIndex] = true;
+      }
     }
   }
 
