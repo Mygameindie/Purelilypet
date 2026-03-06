@@ -101,7 +101,7 @@
     x: bed.x + bed.w / 2 + 80,
     y: bed.y,
     w: BED_W + 40,
-    h: BED_H * 0.65,
+    h: BED_H * 0.45,
     visible: false,
     dragging: false,
     locked: false,
@@ -110,7 +110,7 @@
   function snapBlanketToBed() {
     blanket.x = bed.x;
     // Position blanket to cover lower body area (not heads)
-    blanket.y = bed.y + bed.h * 0.1;
+    blanket.y = bed.y + bed.h * 0.25;
   }
 
   // === Physics ===
