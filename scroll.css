@@ -20,12 +20,13 @@
 	cursor: grab;
 	box-sizing: border-box;
 
-	/* 🧭 force anchor to global window bottom */
+	/* anchor to top of viewport so it doesn't overlap mode menu */
 	position: fixed !important;
 	inset: auto !important;
 	left: 50% !important;
 	transform: translateX(-50%) !important;
-	bottom: 10px !important;
+	top: 10px !important;
+	bottom: auto !important;
 	z-index: 9000 !important;
 	pointer-events: auto !important;
 }
@@ -87,9 +88,10 @@
 	.scrollable-buttons {
 		width: 95%;
 		max-width: 100vw;
-		padding: 8px;
-		gap: 6px;
-		bottom: 8px;
+		padding: 6px;
+		gap: 5px;
+		top: 8px;
+		bottom: auto;
 	}
 }
 
@@ -104,7 +106,8 @@
 	inset: auto !important;
 	left: 50% !important;
 	transform: translateX(-50%) !important;
-	bottom: 10px !important;
+	top: 10px !important;
+	bottom: auto !important;
 	z-index: 9000 !important;
 	pointer-events: auto !important;
 }
@@ -114,7 +117,8 @@
 #ui #presetScrollBar + #categoryScrollBar,
 #ui #categoryScrollBar + .scrollable-buttons {
 	margin-top: 6px !important;
-	bottom: calc(10px + 50px) !important;
+	top: calc(10px + 50px) !important;
+	bottom: auto !important;
 }
 
 /* 📱 Mobile safe adjustment */
@@ -123,7 +127,8 @@
 	#ui #presetScrollBar,
 	#ui #categoryScrollBar,
 	#ui .scrollable-buttons {
-		bottom: 8px !important;
+		top: 8px !important;
+		bottom: auto !important;
 		width: 95% !important;
 		max-width: 100vw !important;
 	}
