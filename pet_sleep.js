@@ -203,8 +203,8 @@
       vy[i] = 0;
       vx[i] = 0;
 
-      // Show blanket if not already sleeping
-      if (!bed.sleeping) {
+      // Show blanket only when BOTH pets are in bed
+      if (!bed.sleeping && bed.petsInBed[0] && bed.petsInBed[1]) {
         blanket.visible = true;
         blanket.locked = false;
         setBlanketPointerEvents();
