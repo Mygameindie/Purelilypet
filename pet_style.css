@@ -25,7 +25,6 @@ canvas {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 9500;
 }
 
 /* === Mode menu (bottom bar) === */
