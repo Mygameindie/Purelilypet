@@ -97,34 +97,18 @@
   }
 
   // Build the stats panel HTML
+  // Styling is handled by pet_style.css (#pet-stats-panel, .stats-card, #mute-btn)
   function buildStatsUI() {
     statsEl.innerHTML = "";
-    statsEl.style.cssText = `
-      position: fixed;
-      top: 12px;
-      left: 12px;
-      z-index: 9998;
-      display: flex;
-      gap: 10px;
-      pointer-events: auto;
-    `;
+    // No inline styles - CSS handles positioning and responsiveness
 
     for (let i = 0; i < NUM_PETS; i++) {
       const card = document.createElement("div");
       card.className = "stats-card";
       card.dataset.pet = i;
-      card.style.cssText = `
-        background: rgba(255,255,255,0.88);
-        border-radius: 10px;
-        padding: 8px 10px;
-        box-shadow: 0 3px 10px rgba(0,0,0,0.12);
-        min-width: 130px;
-        font-family: ui-sans-serif, system-ui, sans-serif;
-        font-size: 12px;
-      `;
 
       card.innerHTML = `
-        <div style="font-weight:600; margin-bottom:4px; font-size:13px;">Pet ${i + 1}</div>
+        <div style="font-weight:600; margin-bottom:3px;">Pet ${i + 1}</div>
         ${statBar("hunger", i, "Hunger", "#fb923c")}
         ${statBar("happiness", i, "Happy", "#4ade80")}
         ${statBar("cleanliness", i, "Clean", "#38bdf8")}
@@ -136,16 +120,6 @@
     // Mute button
     const muteBtn = document.createElement("button");
     muteBtn.id = "mute-btn";
-    muteBtn.style.cssText = `
-      align-self: flex-start;
-      background: rgba(255,255,255,0.88);
-      border: none;
-      border-radius: 10px;
-      padding: 8px 12px;
-      font-size: 18px;
-      cursor: pointer;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.12);
-    `;
     muteBtn.textContent = muted ? "🔇" : "🔊";
     muteBtn.title = "Toggle sound";
     muteBtn.addEventListener("click", () => {

@@ -65,14 +65,20 @@
   let clothesBtn = window.clothesBtn;
   if (!clothesBtn) {
     clothesBtn = document.createElement("button");
+    clothesBtn.id = "clothes-btn";
     clothesBtn.innerText = "Change Clothes";
     clothesBtn.style.position = "fixed";
-    clothesBtn.style.bottom = "20px";
-    clothesBtn.style.right = "20px";
-    clothesBtn.style.padding = "10px 20px";
-    clothesBtn.style.fontSize = "16px";
+    clothesBtn.style.bottom = "calc(65px + env(safe-area-inset-bottom))";
+    clothesBtn.style.right = "10px";
+    clothesBtn.style.padding = "6px 12px";
+    clothesBtn.style.fontSize = "clamp(11px, 2.5vw, 14px)";
     clothesBtn.style.cursor = "pointer";
-    clothesBtn.style.zIndex = "9999";
+    clothesBtn.style.zIndex = "9998";
+    clothesBtn.style.borderRadius = "8px";
+    clothesBtn.style.border = "none";
+    clothesBtn.style.background = "rgba(255,255,255,0.92)";
+    clothesBtn.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
+    clothesBtn.style.whiteSpace = "nowrap";
     document.body.appendChild(clothesBtn);
 
     window.clothesBtn = clothesBtn;

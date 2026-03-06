@@ -13,43 +13,17 @@ window.UICleanup = (function () {
       document.body.appendChild(ui);
     }
 
-    // Apply layout once
+    // Layout is handled by pet_style.css — only mark as ready
     if (!ui.dataset.ready) {
       ui.dataset.ready = "1";
-
-      ui.style.position = "fixed";
-      ui.style.left = "0";
-      ui.style.right = "0";
-      ui.style.bottom = "0";
-      ui.style.display = "flex";
-      ui.style.flexWrap = "wrap";              // 🔥 allows wrapping
-      ui.style.justifyContent = "center";
-      ui.style.alignItems = "center";
-      ui.style.gap = "8px";
-      ui.style.padding = "10px 12px calc(14px + env(safe-area-inset-bottom))";
-      ui.style.boxSizing = "border-box";
-      ui.style.zIndex = "9999";
-      ui.style.maxWidth = "100%";
     }
 
     return ui;
   }
 
+  // Responsive sizing is now handled by pet_style.css media queries
   function applyResponsiveSizing() {
-    const ui = document.getElementById("ui");
-    if (!ui) return;
-
-    const buttons = ui.querySelectorAll("button");
-
-    buttons.forEach(btn => {
-      btn.style.flex = "1 1 auto";
-      btn.style.minWidth = "80px";
-      btn.style.maxWidth = "45%";          // 🔥 prevents full-row takeover
-      btn.style.fontSize = "clamp(12px, 3vw, 16px)";
-      btn.style.padding = "8px 10px";
-      btn.style.boxSizing = "border-box";
-      btn.style.touchAction = "none";
-    });
+    // no-op: CSS handles all responsive button sizing
   }
 
   function createButton(text, onDown, onUp) {
