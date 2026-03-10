@@ -254,6 +254,44 @@
   }
 
   // ==============================
+  // Victory state
+  // ==============================
+  let victoryTimer = 0;
+  const VICTORY_FRAMES = 200;
+
+  function allHealthy() {
+    return pets.every(p => p.phase === 'healthy');
+  }
+
+  function drawVictory() {
+    if (victoryTimer <= 0) return;
+
+    const alpha = Math.min(1, victoryTimer / 40);
+    const scale = 1 + 0.08 * Math.sin(victoryTimer * 0.15);
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(canvas.width / 2, canvas.height * 0.38);
+    ctx.scale(scale, scale);
+
+    // Background pill
+    ctx.beginPath();
+    ctx.roundRect(-160, -36, 320, 72, 36);
+    ctx.fillStyle = 'rgba(34,197,94,0.92)';
+    ctx.shadowColor = 'rgba(0,0,0,0.25)';
+    ctx.shadowBlur = 18;
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+    ctx.font = 'bold 28px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff';
+    ctx.fillText('🎉 All Healed! 🎉', 0, 0);
+    ctx.restore();
+  }
+
+  // ==============================
   // Update
   // ==============================
   function update() {
@@ -269,6 +307,12 @@
     for (const pet of pets) {
       checkHeal(pet);
     }
+
+    // Trigger victory when both pets become healthy
+    if (allHealthy() && victoryTimer === 0) {
+      victoryTimer = VICTORY_FRAMES;
+    }
+    if (victoryTimer > 0) victoryTimer--;
   }
 
   // ==============================
@@ -290,6 +334,7 @@
     }
 
     drawMedicine();
+    drawVictory();
     raf = requestAnimationFrame(loop);
   }
 

@@ -1,8 +1,10 @@
 // ===========================================================
 // 🛝 PLAYGROUND MODE
 // Pets auto-walk and bounce. Drag the ball to kick it at them!
+// Trampoline in the center — land on it for extra bounce!
 // ✅ 2 pets — uses normal base/fly/fall frames (no new art needed)
 // ✅ Ball drawn on canvas (no image required)
+// ✅ Trampoline.png used as center obstacle
 // ===========================================================
 
 (() => {
@@ -44,9 +46,27 @@
     { stand: loadImg('base_2.png'), fly0: loadImg('base2_2.png'), fly1: loadImg('base3_2.png'), fall: loadImg('base4_2.png') },
   ];
 
+  const trampolineImg = loadImg('Trampoline.png');
+
   function safeDraw(img, x, y, w, h) {
     if (!img || img._failed || !img.complete || img.naturalWidth === 0) return;
     ctx.drawImage(img, x, y, w, h);
+  }
+
+  // ==============================
+  // Trampoline
+  // ==============================
+  const TRAMP_W = 280;
+  const TRAMP_H = 140;
+
+  function getTrampolineX() { return canvas.width / 2; }
+  // Trampoline surface Y — the mat sits on top of the ground
+  // We position the image so its bottom is at groundY
+  function trampolineDrawY() { return groundY - TRAMP_H; }
+
+  // Returns true if x is within the trampoline's horizontal bounce zone
+  function onTrampoline(x) {
+    return Math.abs(x - getTrampolineX()) < TRAMP_W * 0.38;
   }
 
   // ==============================
@@ -159,12 +179,18 @@
     ball.x += ball.vx;
     ball.y += ball.vy;
 
-    // Ground bounce
+    // Ground bounce — extra bouncy on trampoline
     if (ball.y + BALL_R >= groundY) {
       ball.y = groundY - BALL_R;
-      ball.vy *= -0.55;
-      ball.vx *= 0.85;
-      if (Math.abs(ball.vy) < 1.5) ball.vy = 0;
+      if (onTrampoline(ball.x) && ball.vy > 0) {
+        // Trampoline: much bouncier, preserve more energy
+        ball.vy = -Math.max(Math.abs(ball.vy) * 0.85, 10);
+        ball.vx *= 0.95;
+      } else {
+        ball.vy *= -0.55;
+        ball.vx *= 0.85;
+        if (Math.abs(ball.vy) < 1.5) ball.vy = 0;
+      }
     }
 
     // Wall bounce
@@ -186,9 +212,16 @@
         pet.vy += gravity;
         pet.y += pet.vy;
         if (pet.y + PET_H / 2 >= groundY) {
-          pet.y = groundY - PET_H / 2;
-          pet.vy = 0;
-          pet.onGround = true;
+          // Trampoline bounce when landing
+          if (onTrampoline(pet.x) && pet.vy > 0) {
+            pet.y = groundY - PET_H / 2;
+            pet.vy = -Math.max(Math.abs(pet.vy) * 0.75, 18);
+            // Stay airborne — trampoline keeps bouncing
+          } else {
+            pet.y = groundY - PET_H / 2;
+            pet.vy = 0;
+            pet.onGround = true;
+          }
         }
       }
 
@@ -227,6 +260,12 @@
     // Dirt
     ctx.fillStyle = '#5c4033';
     ctx.fillRect(0, groundY + 14, canvas.width, groundHeight - 14);
+  }
+
+  function drawTrampoline() {
+    const tx = getTrampolineX();
+    const ty = trampolineDrawY();
+    safeDraw(trampolineImg, tx - TRAMP_W / 2, ty, TRAMP_W, TRAMP_H);
   }
 
   function drawBall() {
@@ -304,6 +343,7 @@
     updatePets();
 
     drawGround();
+    drawTrampoline();
     drawBall();
     drawPets();
 

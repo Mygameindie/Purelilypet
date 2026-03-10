@@ -53,10 +53,17 @@ if (!window.SoundManager) {
     activeScripts = [];
   }
 
-  function loadMode(src, label) {
+  function setActiveButton(id) {
+    document.querySelectorAll('#mode-menu button').forEach(b => b.classList.remove('active'));
+    const btn = id ? document.getElementById(id) : null;
+    if (btn) btn.classList.add('active');
+  }
+
+  function loadMode(src, label, btnId) {
 
     if (window.SoundManager) window.SoundManager.stopAll();
     unloadActiveMode();
+    setActiveButton(btnId);
 
     const scripts = Array.isArray(src) ? src : [src];
     let loadedCount = 0;
@@ -94,43 +101,40 @@ if (!window.SoundManager) {
   // ============================
 
   document.getElementById('normal-btn')?.addEventListener('click', () => {
-    loadMode('pet_script.js', 'Normal Mode');
+    loadMode('pet_script.js', 'Normal Mode', 'normal-btn');
   });
 
   document.getElementById('karaoke-btn')?.addEventListener('click', () => {
-    loadMode('music.js', 'Karaoke Mode');
+    loadMode('music.js', 'Karaoke Mode', 'karaoke-btn');
   });
 
   // 🍱 Feed loads BOTH scripts as ONE mode
   document.getElementById('feed-btn')?.addEventListener('click', () => {
-    loadMode(
-      ['pet_multi_feed.js'],
-      'Feeding Mode'
-    );
+    loadMode(['pet_multi_feed.js'], 'Feeding Mode', 'feed-btn');
   });
 
   document.getElementById('shower-btn')?.addEventListener('click', () => {
-    loadMode('pet_shower.js', 'Shower Mode');
+    loadMode('pet_shower.js', 'Shower Mode', 'shower-btn');
   });
 
   document.getElementById('troll-btn')?.addEventListener('click', () => {
-    loadMode('trolling.js', 'Trolling Mode');
+    loadMode('trolling.js', 'Trolling Mode', 'troll-btn');
   });
 
   document.getElementById('sleep-btn')?.addEventListener('click', () => {
-    loadMode('pet_sleep.js', 'Sleep Mode');
+    loadMode('pet_sleep.js', 'Sleep Mode', 'sleep-btn');
   });
 
   document.getElementById('doctor-btn')?.addEventListener('click', () => {
-    loadMode('doctor_mode.js', 'Doctor Mode');
+    loadMode('doctor_mode.js', 'Doctor Mode', 'doctor-btn');
   });
 
   document.getElementById('playground-btn')?.addEventListener('click', () => {
-    loadMode('playground_mode.js', 'Playground Mode');
+    loadMode('playground_mode.js', 'Playground Mode', 'playground-btn');
   });
 
 
   // Auto-load Normal mode on first open
-  loadMode('pet_script.js', 'Normal Mode');
+  loadMode('pet_script.js', 'Normal Mode', 'normal-btn');
 
 })();

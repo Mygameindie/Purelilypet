@@ -63,6 +63,11 @@ canvas {
 }
 #mode-menu button:hover { background: #fff7e6; }
 #mode-menu button:active { transform: translateY(1px); }
+#mode-menu button.active {
+  background: #fef3c7;
+  box-shadow: 0 0 0 2px #f59e0b, 0 2px 6px rgba(0,0,0,0.12);
+  font-weight: 600;
+}
 
 /* === Hint card === */
 .card.small {
