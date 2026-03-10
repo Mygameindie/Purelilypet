@@ -121,6 +121,14 @@ if (!window.SoundManager) {
     loadMode('pet_sleep.js', 'Sleep Mode');
   });
 
+  document.getElementById('doctor-btn')?.addEventListener('click', () => {
+    loadMode('doctor_mode.js', 'Doctor Mode');
+  });
+
+  document.getElementById('playground-btn')?.addEventListener('click', () => {
+    loadMode('playground_mode.js', 'Playground Mode');
+  });
+
 
   // Auto-load Normal mode on first open
   loadMode('pet_script.js', 'Normal Mode');

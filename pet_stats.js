@@ -250,6 +250,26 @@
       doSave();
     },
 
+    // Doctor: heal a sick pet (restores all stats)
+    heal(petIdx) {
+      const i = (typeof petIdx === "number") ? petIdx : 0;
+      const s = petStats[i];
+      s.hunger = clamp(s.hunger + 30);
+      s.happiness = clamp(s.happiness + 25);
+      s.cleanliness = clamp(s.cleanliness + 20);
+      s.energy = clamp(s.energy + 30);
+      doSave();
+    },
+
+    // Playground: playing boosts happiness and energy slightly
+    playground(petIdx) {
+      const i = (typeof petIdx === "number") ? petIdx : 0;
+      const s = petStats[i];
+      s.happiness = clamp(s.happiness + 4);
+      s.energy = clamp(s.energy - 2);
+      doSave();
+    },
+
     // Check if muted
     isMuted() {
       return muted;
