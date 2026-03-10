@@ -88,6 +88,7 @@
       frame: 0,
       frameTimer: 0,
       jumpCooldown: 0,
+      trampolineCooldown: 0,    // prevents endless trampoline bouncing
     };
   }
 
@@ -201,6 +202,7 @@
   function updatePets() {
     for (const pet of pets) {
       if (pet.jumpCooldown > 0) pet.jumpCooldown--;
+      if (pet.trampolineCooldown > 0) pet.trampolineCooldown--;
 
       // Walk back and forth
       pet.x += walkSpeed * pet.dir;
@@ -212,11 +214,11 @@
         pet.vy += gravity;
         pet.y += pet.vy;
         if (pet.y + PET_H / 2 >= groundY) {
-          // Trampoline bounce when landing
-          if (onTrampoline(pet.x) && pet.vy > 0) {
+          // Trampoline bounce when landing (only if cooldown expired)
+          if (onTrampoline(pet.x) && pet.vy > 0 && pet.trampolineCooldown === 0) {
             pet.y = groundY - PET_H / 2;
-            pet.vy = -Math.max(Math.abs(pet.vy) * 0.75, 18);
-            // Stay airborne — trampoline keeps bouncing
+            pet.vy = -Math.max(Math.abs(pet.vy) * 0.75, 22);
+            pet.trampolineCooldown = 90; // ~1.5s before another trampoline bounce
           } else {
             pet.y = groundY - PET_H / 2;
             pet.vy = 0;
@@ -321,8 +323,14 @@
         ctx.translate(pet.x, 0);
         ctx.scale(-1, 1);
         safeDraw(img, -PET_W / 2, pet.y - PET_H / 2, PET_W, PET_H);
+        if (typeof window.drawOutfitOverlay === 'function') {
+          window.drawOutfitOverlay(ctx, state, -PET_W / 2, pet.y - PET_H / 2, PET_W, PET_H, i);
+        }
       } else {
         safeDraw(img, pet.x - PET_W / 2, pet.y - PET_H / 2, PET_W, PET_H);
+        if (typeof window.drawOutfitOverlay === 'function') {
+          window.drawOutfitOverlay(ctx, state, pet.x - PET_W / 2, pet.y - PET_H / 2, PET_W, PET_H, i);
+        }
       }
 
       ctx.restore();
@@ -343,9 +351,9 @@
     updatePets();
 
     drawGround();
-    drawTrampoline();
-    drawBall();
-    drawPets();
+    drawTrampoline();  // behind pets and ball
+    drawPets();        // pets in front of trampoline
+    drawBall();        // ball on top
 
     raf = requestAnimationFrame(loop);
   }
