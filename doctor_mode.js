@@ -168,8 +168,7 @@
     ctx.save();
     if (needsTint) ctx.filter = 'hue-rotate(140deg) saturate(1.2)';
     ctx.drawImage(img, petX(i) - PET_W / 2, petY() - PET_H / 2, PET_W, PET_H);
-    // Draw outfit overlay only when healthy/healed (not when visually sick)
-    if (pet.phase !== 'sick' && typeof window.drawOutfitOverlay === 'function') {
+    if (typeof window.drawOutfitOverlay === 'function') {
       window.drawOutfitOverlay(ctx, 'stand', petX(i) - PET_W / 2, petY() - PET_H / 2, PET_W, PET_H, i);
     }
     ctx.restore();

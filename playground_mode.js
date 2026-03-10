@@ -1,10 +1,8 @@
 // ===========================================================
 // 🛝 PLAYGROUND MODE
 // Pets auto-walk and bounce. Drag the ball to kick it at them!
-// Trampoline in the center — land on it for extra bounce!
 // ✅ 2 pets — uses normal base/fly/fall frames (no new art needed)
-// ✅ Ball drawn on canvas (no image required)
-// ✅ Trampoline.png used as center obstacle
+// ✅ Ball is drag-and-drop: grab it, fling it at the pets!
 // ===========================================================
 
 (() => {
@@ -46,27 +44,9 @@
     { stand: loadImg('base_2.png'), fly0: loadImg('base2_2.png'), fly1: loadImg('base3_2.png'), fall: loadImg('base4_2.png') },
   ];
 
-  const trampolineImg = loadImg('Trampoline.png');
-
   function safeDraw(img, x, y, w, h) {
     if (!img || img._failed || !img.complete || img.naturalWidth === 0) return;
     ctx.drawImage(img, x, y, w, h);
-  }
-
-  // ==============================
-  // Trampoline
-  // ==============================
-  const TRAMP_W = 280;
-  const TRAMP_H = 140;
-
-  function getTrampolineX() { return canvas.width / 2; }
-  // Trampoline surface Y — the mat sits on top of the ground
-  // We position the image so its bottom is at groundY
-  function trampolineDrawY() { return groundY - TRAMP_H; }
-
-  // Returns true if x is within the trampoline's horizontal bounce zone
-  function onTrampoline(x) {
-    return Math.abs(x - getTrampolineX()) < TRAMP_W * 0.38;
   }
 
   // ==============================
@@ -83,12 +63,11 @@
       x: canvas.width * xFrac,
       y: groundY - PET_H / 2,
       vy: 0,
-      dir: idx === 0 ? 1 : -1,   // walk direction
+      dir: idx === 0 ? 1 : -1,
       onGround: true,
       frame: 0,
       frameTimer: 0,
       jumpCooldown: 0,
-      trampolineCooldown: 0,    // prevents endless trampoline bouncing
     };
   }
 
@@ -104,12 +83,13 @@
     vx: 0,
     vy: 0,
     dragging: false,
+    hovering: false,
     lastX: 0,
     lastY: 0,
   };
 
   // ==============================
-  // Drag
+  // Drag & drop
   // ==============================
   let offsetX = 0, offsetY = 0;
 
@@ -120,38 +100,51 @@
     return { x: cx - r.left, y: cy - r.top };
   }
 
-  function onDown(e) {
-    const p = getPtr(e);
+  function hitsBall(p) {
     const dx = p.x - ball.x;
     const dy = p.y - ball.y;
-    if (Math.sqrt(dx * dx + dy * dy) <= BALL_R + 12) {
+    return Math.sqrt(dx * dx + dy * dy) <= BALL_R + 14;
+  }
+
+  function onDown(e) {
+    const p = getPtr(e);
+    if (hitsBall(p)) {
       ball.dragging = true;
       ball.vx = 0;
       ball.vy = 0;
-      offsetX = dx;
-      offsetY = dy;
-      ball.lastX = p.x;
-      ball.lastY = p.y;
+      offsetX = p.x - ball.x;
+      offsetY = p.y - ball.y;
+      ball.lastX = ball.x;
+      ball.lastY = ball.y;
+      canvas.style.cursor = 'grabbing';
       e.preventDefault();
     }
   }
 
   function onMove(e) {
-    if (!ball.dragging) return;
     const p = getPtr(e);
-    ball.lastX = ball.x;
-    ball.lastY = ball.y;
-    ball.x = p.x - offsetX;
-    ball.y = p.y - offsetY;
-    if (e.touches) e.preventDefault();
+    if (ball.dragging) {
+      ball.lastX = ball.x;
+      ball.lastY = ball.y;
+      ball.x = p.x - offsetX;
+      ball.y = p.y - offsetY;
+      if (e.touches) e.preventDefault();
+    } else {
+      // Update grab cursor on hover
+      const hover = hitsBall(p);
+      if (hover !== ball.hovering) {
+        ball.hovering = hover;
+        canvas.style.cursor = hover ? 'grab' : 'default';
+      }
+    }
   }
 
   function onUp() {
     if (!ball.dragging) return;
     ball.dragging = false;
-    // fling based on last movement
     ball.vx = (ball.x - ball.lastX) * 1.4;
     ball.vy = (ball.y - ball.lastY) * 1.4;
+    canvas.style.cursor = ball.hovering ? 'grab' : 'default';
   }
 
   canvas.addEventListener('mousedown', onDown);
@@ -180,18 +173,12 @@
     ball.x += ball.vx;
     ball.y += ball.vy;
 
-    // Ground bounce — extra bouncy on trampoline
+    // Ground bounce
     if (ball.y + BALL_R >= groundY) {
       ball.y = groundY - BALL_R;
-      if (onTrampoline(ball.x) && ball.vy > 0) {
-        // Trampoline: much bouncier, preserve more energy
-        ball.vy = -Math.max(Math.abs(ball.vy) * 0.85, 10);
-        ball.vx *= 0.95;
-      } else {
-        ball.vy *= -0.55;
-        ball.vx *= 0.85;
-        if (Math.abs(ball.vy) < 1.5) ball.vy = 0;
-      }
+      ball.vy *= -0.55;
+      ball.vx *= 0.85;
+      if (Math.abs(ball.vy) < 1.5) ball.vy = 0;
     }
 
     // Wall bounce
@@ -202,7 +189,6 @@
   function updatePets() {
     for (const pet of pets) {
       if (pet.jumpCooldown > 0) pet.jumpCooldown--;
-      if (pet.trampolineCooldown > 0) pet.trampolineCooldown--;
 
       // Walk back and forth
       pet.x += walkSpeed * pet.dir;
@@ -214,16 +200,9 @@
         pet.vy += gravity;
         pet.y += pet.vy;
         if (pet.y + PET_H / 2 >= groundY) {
-          // Trampoline bounce when landing (only if cooldown expired)
-          if (onTrampoline(pet.x) && pet.vy > 0 && pet.trampolineCooldown === 0) {
-            pet.y = groundY - PET_H / 2;
-            pet.vy = -Math.max(Math.abs(pet.vy) * 0.75, 22);
-            pet.trampolineCooldown = 90; // ~1.5s before another trampoline bounce
-          } else {
-            pet.y = groundY - PET_H / 2;
-            pet.vy = 0;
-            pet.onGround = true;
-          }
+          pet.y = groundY - PET_H / 2;
+          pet.vy = 0;
+          pet.onGround = true;
         }
       }
 
@@ -235,7 +214,6 @@
         pet.vy = -18;
         pet.onGround = false;
         pet.jumpCooldown = 60;
-        // bounce ball away
         ball.vx = dx > 0 ? Math.abs(ball.vx) + 4 : -(Math.abs(ball.vx) + 4);
         ball.vy = -10;
         if (window.PetStats && typeof window.PetStats.playground === 'function') {
@@ -256,18 +234,10 @@
   // Draw
   // ==============================
   function drawGround() {
-    // Grass
     ctx.fillStyle = '#4ade80';
     ctx.fillRect(0, groundY, canvas.width, 14);
-    // Dirt
     ctx.fillStyle = '#5c4033';
     ctx.fillRect(0, groundY + 14, canvas.width, groundHeight - 14);
-  }
-
-  function drawTrampoline() {
-    const tx = getTrampolineX();
-    const ty = trampolineDrawY();
-    safeDraw(trampolineImg, tx - TRAMP_W / 2, ty, TRAMP_W, TRAMP_H);
   }
 
   function drawBall() {
@@ -277,6 +247,15 @@
     ctx.ellipse(ball.x, groundY + 6, Math.max(8, BALL_R - Math.max(0, groundY - ball.y - BALL_R) * 0.3), 6, 0, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(0,0,0,0.2)';
     ctx.fill();
+
+    // Glow ring when hovering or dragging
+    if (ball.hovering || ball.dragging) {
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, BALL_R + 6, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
 
     // Ball body
     const grad = ctx.createRadialGradient(ball.x - BALL_R * 0.3, ball.y - BALL_R * 0.3, BALL_R * 0.1, ball.x, ball.y, BALL_R);
@@ -318,7 +297,6 @@
       ctx.save();
       if (needsTint) ctx.filter = 'hue-rotate(140deg) saturate(1.2)';
 
-      // Flip when walking left
       if (pet.dir === -1) {
         ctx.translate(pet.x, 0);
         ctx.scale(-1, 1);
@@ -351,9 +329,8 @@
     updatePets();
 
     drawGround();
-    drawTrampoline();  // behind pets and ball
-    drawPets();        // pets in front of trampoline
-    drawBall();        // ball on top
+    drawPets();
+    drawBall();   // ball on top
 
     raf = requestAnimationFrame(loop);
   }
@@ -373,6 +350,7 @@
     canvas.removeEventListener('touchmove', onMove);
     canvas.removeEventListener('touchend', onUp);
     window.removeEventListener('resize', onResize);
+    canvas.style.cursor = 'default';
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   };
 
